@@ -53,9 +53,9 @@
                 <TextBox x:Name="SimplifiedHtmlTextBox"
                          IsReadOnly="True"
                          AcceptsReturn="True"
-                         TextWrapping="NoWrap"
+                         TextWrapping="Wrap"
                          VerticalScrollBarVisibility="Auto"
-                         HorizontalScrollBarVisibility="Auto"
+                         HorizontalScrollBarVisibility="Disabled"
                          FontFamily="Consolas"
                          FontSize="12"/>
             </GroupBox>
