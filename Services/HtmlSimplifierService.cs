@@ -14,6 +14,9 @@ public sealed class SimplifyResult
     /// <summary>格式化（带缩进、便于换行阅读）后的精简 HTML。</summary>
     public string Html { get; init; } = string.Empty;
 
+    /// <summary>未格式化的紧凑精简 HTML（不含额外缩进和换行，供复制使用）。</summary>
+    public string RawHtml { get; init; } = string.Empty;
+
     /// <summary>原始 HTML 字符数。</summary>
     public int OriginalLength { get; init; }
 
@@ -177,6 +180,7 @@ public sealed class HtmlSimplifierService
         return new SimplifyResult
         {
             Html = formatted,
+            RawHtml = simplifiedHtml,
             OriginalLength = originalLength,
             SimplifiedLength = simplifiedHtml.Length,
             RemovedTags = removedTags,

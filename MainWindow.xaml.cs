@@ -11,6 +11,8 @@ namespace PwDemo;
 public partial class MainWindow : Window
 {
     private readonly HtmlSimplifierService _simplifier = new();
+    private SimplifyResult? _lastResult;
+    private StatsWindow? _statsWindow;
 
     public MainWindow()
     {
@@ -33,8 +35,10 @@ public partial class MainWindow : Window
             SimplifyButton.IsEnabled = false;
             SetStatus("正在精简 HTML...");
             var result = _simplifier.Simplify(raw);
+            _lastResult = result;
             SimplifiedHtmlTextBox.Text = result.Html;
             SetStatus(result.ToChineseSummary());
+            ShowStatsWindow(result);
         }
         catch (Exception ex)
         {
@@ -46,18 +50,42 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// 弹出（或刷新）统计窗口，显示本次精简的字符数与删除明细。
+    /// </summary>
+    private void ShowStatsWindow(SimplifyResult result)
+    {
+        if (_statsWindow == null || !_statsWindow.IsLoaded)
+        {
+            _statsWindow = new StatsWindow { Owner = this };
+            _statsWindow.Closed += (_, _) => _statsWindow = null;
+            _statsWindow.ShowResult(result);
+            _statsWindow.Show();
+        }
+        else
+        {
+            _statsWindow.ShowResult(result);
+            _statsWindow.Activate();
+        }
+    }
+
     private void CopyButton_Click(object sender, RoutedEventArgs e)
     {
         try
         {
-            var text = SimplifiedHtmlTextBox.Text ?? string.Empty;
+            // 复制时使用未格式化的紧凑 HTML，避免换行/缩进增加字符数。
+            var text = _lastResult?.RawHtml;
+            if (string.IsNullOrEmpty(text))
+            {
+                text = SimplifiedHtmlTextBox.Text ?? string.Empty;
+            }
             if (string.IsNullOrEmpty(text))
             {
                 SetStatus("没有可复制的内容");
                 return;
             }
             Clipboard.SetText(text);
-            SetStatus("已复制到剪贴板");
+            SetStatus($"已复制到剪贴板（{text.Length} 字符，未换行）");
         }
         catch (Exception ex)
         {
@@ -69,6 +97,7 @@ public partial class MainWindow : Window
     {
         RawHtmlTextBox.Clear();
         SimplifiedHtmlTextBox.Clear();
+        _lastResult = null;
         SetStatus("已清空");
     }
 }
