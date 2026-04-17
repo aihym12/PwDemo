@@ -5,113 +5,39 @@ using PwDemo.Services;
 namespace PwDemo;
 
 /// <summary>
-/// Interaction logic for MainWindow.xaml
+/// 主窗口交互逻辑：粘贴原始 HTML，点击"精简 HTML"按钮，
+/// 在右侧得到精简后的 HTML。
 /// </summary>
 public partial class MainWindow : Window
 {
-    private readonly PlaywrightService _playwright;
+    private readonly HtmlSimplifierService _simplifier = new();
 
     public MainWindow()
     {
         InitializeComponent();
-        _playwright = new PlaywrightService(Log);
-        Closed += async (_, _) => await _playwright.DisposeAsync();
     }
 
-    private void Log(string message)
-    {
-        Dispatcher.Invoke(() =>
-        {
-            LogTextBox.AppendText($"[{DateTime.Now:HH:mm:ss}] {message}{Environment.NewLine}");
-            LogTextBox.ScrollToEnd();
-        });
-    }
+    private void SetStatus(string message) => StatusText.Text = message;
 
-    private void SetStatus(string message) =>
-        Dispatcher.Invoke(() => StatusText.Text = message);
-
-    private async void LaunchButton_Click(object sender, RoutedEventArgs e)
+    private void SimplifyButton_Click(object sender, RoutedEventArgs e)
     {
         try
         {
-            LaunchButton.IsEnabled = false;
-            SetStatus("Launching browser...");
-            await _playwright.LaunchAsync();
-            SetStatus("Browser ready");
-        }
-        catch (Exception ex)
-        {
-            Log($"Launch failed: {ex.Message}");
-            SetStatus("Launch failed");
-        }
-        finally
-        {
-            LaunchButton.IsEnabled = true;
-        }
-    }
-
-    private async void NavigateButton_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            var url = UrlTextBox.Text?.Trim();
-            if (string.IsNullOrEmpty(url))
+            var raw = RawHtmlTextBox.Text ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(raw))
             {
-                Log("URL is empty.");
+                SetStatus("请先粘贴 HTML 代码");
                 return;
             }
-            NavigateButton.IsEnabled = false;
-            SetStatus($"Navigating to {url}...");
-            var html = await _playwright.NavigateAndGetHtmlAsync(url);
-            RawHtmlTextBox.Text = html;
-            SetStatus("Navigation complete");
-        }
-        catch (Exception ex)
-        {
-            Log($"Navigate failed: {ex.Message}");
-            SetStatus("Navigate failed");
-        }
-        finally
-        {
-            NavigateButton.IsEnabled = true;
-        }
-    }
 
-    private async void ExtractButton_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            ExtractButton.IsEnabled = false;
-            SetStatus("Extracting elements (including iframes)...");
-            var json = await _playwright.ExtractElementsJsonAsync();
-            ElementsJsonTextBox.Text = json;
-            SetStatus("Elements extracted");
-        }
-        catch (Exception ex)
-        {
-            Log($"Extract failed: {ex.Message}");
-            SetStatus("Extract failed");
-        }
-        finally
-        {
-            ExtractButton.IsEnabled = true;
-        }
-    }
-
-    private async void SimplifyButton_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
             SimplifyButton.IsEnabled = false;
-            SetStatus("Simplifying HTML...");
-            var simplified = await _playwright.SimplifyHtmlAsync();
-            SimplifiedHtmlTextBox.Text = simplified;
-            SetStatus("HTML simplified");
+            SetStatus("正在精简 HTML...");
+            SimplifiedHtmlTextBox.Text = _simplifier.Simplify(raw);
+            SetStatus($"精简完成（{SimplifiedHtmlTextBox.Text.Length} 字符）");
         }
         catch (Exception ex)
         {
-            Log($"Simplify failed: {ex.Message}");
-            SetStatus("Simplify failed");
+            SetStatus($"精简失败：{ex.Message}");
         }
         finally
         {
@@ -119,16 +45,29 @@ public partial class MainWindow : Window
         }
     }
 
-    private async void CloseBrowserButton_Click(object sender, RoutedEventArgs e)
+    private void CopyButton_Click(object sender, RoutedEventArgs e)
     {
         try
         {
-            await _playwright.DisposeAsync();
-            SetStatus("Browser closed");
+            var text = SimplifiedHtmlTextBox.Text ?? string.Empty;
+            if (string.IsNullOrEmpty(text))
+            {
+                SetStatus("没有可复制的内容");
+                return;
+            }
+            Clipboard.SetText(text);
+            SetStatus("已复制到剪贴板");
         }
         catch (Exception ex)
         {
-            Log($"Close failed: {ex.Message}");
+            SetStatus($"复制失败：{ex.Message}");
         }
+    }
+
+    private void ClearButton_Click(object sender, RoutedEventArgs e)
+    {
+        RawHtmlTextBox.Clear();
+        SimplifiedHtmlTextBox.Clear();
+        SetStatus("已清空");
     }
 }
