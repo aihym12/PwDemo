@@ -32,8 +32,9 @@ public partial class MainWindow : Window
 
             SimplifyButton.IsEnabled = false;
             SetStatus("正在精简 HTML...");
-            SimplifiedHtmlTextBox.Text = _simplifier.Simplify(raw);
-            SetStatus($"精简完成（{SimplifiedHtmlTextBox.Text.Length} 字符）");
+            var result = _simplifier.Simplify(raw);
+            SimplifiedHtmlTextBox.Text = result.Html;
+            SetStatus(result.ToChineseSummary());
         }
         catch (Exception ex)
         {
